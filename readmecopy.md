@@ -271,3 +271,16 @@ terraform -help
 
 
 aws eks describe-cluster --name my-eks-cluster --query "cluster.identity.oidc.issuer" --output text
+
+
+
+
+
+cd ~/runner-repo-a
+
+./config.sh \
+  --url https://github.com/nikhil633/devsecops-demo \
+  --token AO5DTZ3AGJDTGXS5VUCG75LKXE544
+
+sudo ./svc.sh install
+sudo ./svc.sh start

@@ -1,5 +1,3 @@
-# github-oidc.tf
-
 data "aws_caller_identity" "current" {}
 
 data "aws_region" "current" {}
@@ -10,8 +8,6 @@ resource "aws_iam_openid_connect_provider" "github" {
   client_id_list = [
     "sts.amazonaws.com"
   ]
-
-  # GitHub's OIDC certificate thumbprint
 
   tags = {
     Name        = "github-actions-oidc"
@@ -41,7 +37,7 @@ resource "aws_iam_role" "github_actions" {
           }
 
           StringLike = {
-            "token.actions.githubusercontent.com:sub" = "repo:nikhil633@62536167/terraform@1390239987"
+            "token.actions.githubusercontent.com:sub" = "repo:nikhil633/terraform:ref:refs/heads/main"
           }
         }
       }
@@ -53,15 +49,11 @@ resource "aws_iam_role" "github_actions" {
   }
 }
 
-
 resource "aws_iam_role_policy_attachment" "github_admin" {
   role       = aws_iam_role.github_actions.name
   policy_arn = "arn:aws:iam::aws:policy/AdministratorAccess"
 }
 
-
-
 output "github_actions_role_arn" {
   value = aws_iam_role.github_actions.arn
 }
-

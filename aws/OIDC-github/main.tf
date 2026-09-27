@@ -12,9 +12,7 @@ resource "aws_iam_openid_connect_provider" "github" {
   ]
 
   # GitHub's OIDC certificate thumbprint
-  thumbprint_list = [
-    "ffffffffffffffffffffffffffffffffffffffff"
-  ]
+ 
 
   tags = {
     Name        = "github-actions-oidc"
@@ -62,37 +60,6 @@ resource "aws_iam_role_policy_attachment" "github_admin" {
   policy_arn = "arn:aws:iam::aws:policy/AdministratorAccess"
 }
 
-
-# resource "aws_iam_policy" "terraform" {
-#   name = "github-actions-terraform-policy"
-
-#   policy = jsonencode({
-#     Version = "2012-10-17"
-
-#     Statement = [
-#       {
-#         Effect = "Allow"
-
-#         Action = [
-#           "ec2:*",
-#           "iam:GetRole",
-#           "iam:CreateRole",
-#           "iam:DeleteRole",
-#           "iam:AttachRolePolicy",
-#           "iam:DetachRolePolicy",
-#           "iam:PassRole"
-#         ]
-
-#         Resource = "*"
-#       }
-#     ]
-#   })
-# }
-
-# resource "aws_iam_role_policy_attachment" "terraform" {
-#   role       = aws_iam_role.github_actions.name
-#   policy_arn = aws_iam_policy.terraform.arn
-# }
 
 
 output "github_actions_role_arn" {

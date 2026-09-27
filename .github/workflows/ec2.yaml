@@ -102,11 +102,21 @@ jobs:
         run: |
           terraform validate
 
+      - name: Setup Python environment
+        run: |
+          python3 -m venv ~/terraform-venv
+          ~/terraform-venv/bin/python -m pip install --upgrade pip
+          ~/terraform-venv/bin/python -m pip install checkov
+
+      - name: Run Checkov
+        run: |
+          ~/terraform-venv/bin/checkov -d .
+
 
       # --------------------------------------------------
       # 8. Install Checkov
       # --------------------------------------------------
-
+      
       - name: Install Checkov
         run: |
           python3 -m pip install --upgrade pip

@@ -12,7 +12,6 @@ resource "aws_iam_openid_connect_provider" "github" {
   ]
 
   # GitHub's OIDC certificate thumbprint
- 
 
   tags = {
     Name        = "github-actions-oidc"

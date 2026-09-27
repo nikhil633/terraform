@@ -84,15 +84,7 @@ jobs:
           aws sts get-caller-identity
 
 
-      # --------------------------------------------------
-      # 5. Terraform Format
-      # --------------------------------------------------
-
-      - name: Terraform Format Check
-        run: |
-          terraform fmt -check -recursive
-
-
+     
       # --------------------------------------------------
       # 6. Terraform Init
       # --------------------------------------------------

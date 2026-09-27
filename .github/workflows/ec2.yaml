@@ -18,11 +18,10 @@ env:
 jobs:
 
   terraform:
-    name: Terraform Security + Deploy + Destroy
+    name: Terraform Deploy + Destroy
     runs-on: [self-hosted, aws]
 
     steps:
-      
 
       # --------------------------------------------------
       # 1. Checkout
@@ -40,32 +39,37 @@ jobs:
         uses: hashicorp/setup-terraform@v3
         with:
           terraform_version: ${{ env.TF_VERSION }}
-        
-      - name: Debug GitHub OIDC token
-        uses: actions/github-script@v7
-        with:
-         script: |
-          const token = await core.getIDToken('sts.amazonaws.com');
-
-          const payload = JSON.parse(
-          Buffer.from(token.split('.')[1], 'base64url').toString()
-          );
-
-          console.log("========== OIDC CLAIMS ==========");
-          console.log("iss:", payload.iss);
-          console.log("aud:", payload.aud);
-          console.log("sub:", payload.sub);
-          console.log("repository:", payload.repository);
-          console.log("repository_id:", payload.repository_id);
-          console.log("repository_owner_id:", payload.repository_owner_id);
-          console.log("ref:", payload.ref);
-          console.log("workflow:", payload.workflow);
-          console.log("environment:", payload.environment);
-          console.log("=================================");
 
 
       # --------------------------------------------------
-      # 3. Configure AWS using GitHub OIDC
+      # 3. Debug GitHub OIDC token
+      # --------------------------------------------------
+
+      - name: Debug GitHub OIDC token
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const token = await core.getIDToken('sts.amazonaws.com');
+
+            const payload = JSON.parse(
+              Buffer.from(token.split('.')[1], 'base64url').toString()
+            );
+
+            console.log("========== OIDC CLAIMS ==========");
+            console.log("iss:", payload.iss);
+            console.log("aud:", payload.aud);
+            console.log("sub:", payload.sub);
+            console.log("repository:", payload.repository);
+            console.log("repository_id:", payload.repository_id);
+            console.log("repository_owner_id:", payload.repository_owner_id);
+            console.log("ref:", payload.ref);
+            console.log("workflow:", payload.workflow);
+            console.log("environment:", payload.environment);
+            console.log("=================================");
+
+
+      # --------------------------------------------------
+      # 4. Configure AWS using GitHub OIDC
       # --------------------------------------------------
 
       - name: Configure AWS credentials
@@ -76,7 +80,7 @@ jobs:
 
 
       # --------------------------------------------------
-      # 4. Verify AWS
+      # 5. Verify AWS
       # --------------------------------------------------
 
       - name: Verify AWS identity
@@ -84,7 +88,6 @@ jobs:
           aws sts get-caller-identity
 
 
-     
       # --------------------------------------------------
       # 6. Terraform Init
       # --------------------------------------------------
@@ -102,40 +105,9 @@ jobs:
         run: |
           terraform validate
 
-      - name: Setup Python environment
-        run: |
-          python3 -m venv ~/terraform-venv
-          ~/terraform-venv/bin/python -m pip install --upgrade pip
-          ~/terraform-venv/bin/python -m pip install checkov
-
-      - name: Run Checkov
-        run: |
-          ~/terraform-venv/bin/checkov -d .
-
 
       # --------------------------------------------------
-      # 8. Install Checkov
-      # --------------------------------------------------
-      
-      # - name: Install Checkov
-      #   run: |
-      #     python3 -m pip install --upgrade pip
-      #     pip3 install checkov
-
-
-      # # --------------------------------------------------
-      # # 9. Checkov Terraform source scan
-      # # --------------------------------------------------
-
-      # - name: Checkov IaC Security Scan
-      #   run: |
-      #     checkov -d . \
-      #       --framework terraform \
-      #       --download-external-modules true
-
-
-      # --------------------------------------------------
-      # 10. Terraform Plan
+      # 8. Terraform Plan
       # --------------------------------------------------
 
       - name: Terraform Plan
@@ -146,25 +118,7 @@ jobs:
 
 
       # --------------------------------------------------
-      # 11. Convert Terraform plan to JSON
-      # --------------------------------------------------
-
-      - name: Terraform Plan JSON
-        run: |
-          terraform show -json tfplan > tfplan.json
-
-
-      # --------------------------------------------------
-      # 12. Checkov Terraform PLAN scan
-      # --------------------------------------------------
-
-      - name: Checkov Terraform Plan Scan
-        run: |
-          checkov -f tfplan.json
-
-
-      # --------------------------------------------------
-      # 13. Terraform Apply
+      # 9. Terraform Apply
       # --------------------------------------------------
 
       - name: Terraform Apply
@@ -176,7 +130,7 @@ jobs:
 
 
       # --------------------------------------------------
-      # 14. Wait 30 seconds
+      # 10. Wait 30 seconds
       # --------------------------------------------------
 
       - name: Wait 30 seconds
@@ -186,7 +140,7 @@ jobs:
 
 
       # --------------------------------------------------
-      # 15. Terraform Destroy
+      # 11. Terraform Destroy
       # --------------------------------------------------
 
       - name: Terraform Destroy

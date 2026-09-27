@@ -37,7 +37,7 @@ resource "aws_iam_role" "github_actions" {
           }
 
           StringLike = {
-            "token.actions.githubusercontent.com:sub" = "repo:nikhil633/terraform:ref:refs/heads/main"
+            "token.actions.githubusercontent.com:sub" = "repo:nikhil633@62531667/terraform@01390239987:ref:refs/heads/main"
           }
         }
       }

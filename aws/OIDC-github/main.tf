@@ -35,7 +35,7 @@ resource "aws_iam_role" "github_actions" {
           StringEquals = {
             "token.actions.githubusercontent.com:aud" = "sts.amazonaws.com"
 
-            "token.actions.githubusercontent.com:sub" = "repo:nikhil633@62531667/terraform@01390239987:ref:refs/heads/main"
+            "token.actions.githubusercontent.com:sub" = "repo:nikhil633@62536167/terraform@1390239987:ref:refs/heads/main"
           }
         }
       }

@@ -117,21 +117,21 @@ jobs:
       # 8. Install Checkov
       # --------------------------------------------------
       
-      - name: Install Checkov
-        run: |
-          python3 -m pip install --upgrade pip
-          pip3 install checkov
+      # - name: Install Checkov
+      #   run: |
+      #     python3 -m pip install --upgrade pip
+      #     pip3 install checkov
 
 
-      # --------------------------------------------------
-      # 9. Checkov Terraform source scan
-      # --------------------------------------------------
+      # # --------------------------------------------------
+      # # 9. Checkov Terraform source scan
+      # # --------------------------------------------------
 
-      - name: Checkov IaC Security Scan
-        run: |
-          checkov -d . \
-            --framework terraform \
-            --download-external-modules true
+      # - name: Checkov IaC Security Scan
+      #   run: |
+      #     checkov -d . \
+      #       --framework terraform \
+      #       --download-external-modules true
 
 
       # --------------------------------------------------

@@ -19,7 +19,7 @@ jobs:
 
   terraform:
     name: Terraform Security + Deploy + Destroy
-    runs-on: terraform
+    runs-on: [self-hosted, aws]
 
     steps:
 

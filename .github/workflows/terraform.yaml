@@ -24,6 +24,8 @@ jobs:
   terraform-plan:
     name: "Terraform Plan"
     runs-on: self-hosted
+    outputs:
+      environment: ${{ steps.env-vars.outputs.environment }}
     
     steps:
       - name: Checkout

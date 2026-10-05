@@ -6,7 +6,7 @@ docs/
 *.tfstate.*
 *.tfvars
 .terraform/
-.terraform.lock.hcl
+# .terraform.lock.hcl
 crash.log
 override.tf
 override.tf.json

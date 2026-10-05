@@ -80,6 +80,12 @@ jobs:
         id: validate
         run: terraform validate
 
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-region: ${{ env.AWS_REGION }}
+          role-to-assume: arn:aws:iam::571573792013:role/github-actions-terraform-role
+
       - name: Terraform Plan
         working-directory: ./aws/s3
         id: plan

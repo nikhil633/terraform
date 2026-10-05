@@ -189,6 +189,7 @@ jobs:
         id: download
         with:
           name: tfplan-${{ env.ENVIRONMENT }}
+          path: aws/s3
 
       - name: Check if Plan Exists
         id: check-plan

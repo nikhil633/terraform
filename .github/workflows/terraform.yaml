@@ -147,8 +147,8 @@ jobs:
     name: "Terraform Apply"
     needs: terraform-plan
     if: github.event_name == 'push' && needs.terraform-plan.result == 'success'
-    runs-on: ubuntu-latest
-    environment: ${{ needs.terraform-plan.outputs.environment }}
+    runs-on: self-hosted
+   # environment: ${{ needs.terraform-plan.outputs.environment }}
 
     steps:
       - name: Checkout
@@ -220,4 +220,15 @@ jobs:
           echo "" >> $GITHUB_STEP_SUMMARY
           terraform output >> $GITHUB_STEP_SUMMARY
 
-      
+      - name: Wait 30 seconds
+        run: |
+          echo "Waiting 30 seconds..."
+          sleep 30
+
+      - name: Terraform Destroy
+        working-directory: ./aws/ec2
+        if: always()
+        run: |
+          terraform destroy \
+            -input=false \
+            -auto-approve

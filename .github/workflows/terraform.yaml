@@ -41,11 +41,12 @@ jobs:
           fi
 
           if [[ "$BRANCH_NAME" == "main" ]]; then
-            echo "environment=prod" >> $GITHUB_OUTPUT
-            echo "ENVIRONMENT=prod" >> $GITHUB_ENV
+            ENVIRONMENT="prod"
           else
-            echo "environment=dev" >> $GITHUB_OUTPUT
-            echo "ENVIRONMENT=dev" >> $GITHUB_ENV
+            ENVIRONMENT="dev"
           fi
+
+          echo "environment=$ENVIRONMENT" >> "$GITHUB_OUTPUT"
+          echo "ENVIRONMENT=$ENVIRONMENT" >> "$GITHUB_ENV"
 
           echo "Deploying to: $ENVIRONMENT"

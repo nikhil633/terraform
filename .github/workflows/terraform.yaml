@@ -192,6 +192,7 @@ jobs:
           path: aws/s3
 
       - name: Check if Plan Exists
+        working-directory: ./aws/s3
         id: check-plan
         run: |
           if [ -f "tfplan" ]; then

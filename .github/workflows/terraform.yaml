@@ -226,7 +226,7 @@ jobs:
           sleep 30
 
       - name: Terraform Destroy
-        working-directory: ./aws/ec2
+        working-directory: ./aws/s3
         if: always()
         run: |
           terraform destroy \

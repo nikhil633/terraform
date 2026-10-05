@@ -95,7 +95,7 @@ jobs:
 
       
       - name: Comment PR with Plan
-        if: github.event_name == 'push'
+        if: github.event_name == 'pull_request'
         uses: actions/github-script@v6
         with:
           github-token: ${{ secrets.TOKEN }}
@@ -139,3 +139,76 @@ jobs:
           path: tfplan
           retention-days: 5
           if-no-files-found: warn
+
+
+  terraform-apply:
+    name: "Terraform Apply"
+    needs: terraform-plan
+    if: github.event_name == 'push' && needs.terraform-plan.result == 'success'
+    runs-on: ubuntu-latest
+    environment: ${{ needs.terraform-plan.outputs.environment }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      - name: Determine Environment
+        id: env-vars
+        run: |
+          BRANCH_NAME="${{ github.ref_name }}"
+          if [[ "$BRANCH_NAME" == "main" ]]; then
+            echo "ENVIRONMENT=prod" >> $GITHUB_ENV
+          else
+            echo "ENVIRONMENT=dev" >> $GITHUB_ENV
+          fi
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v2
+        with:
+          terraform_version: ${{ env.TF_VERSION }}
+          terraform_wrapper: false
+
+      - name: Terraform Init
+        run: |
+          # Initialize with environment-specific backend configuration
+          terraform init -reconfigure -backend-config="backend-${{ env.ENVIRONMENT }}.hcl"
+
+      - name: Download Plan
+        uses: actions/download-artifact@v4
+        continue-on-error: true
+        id: download
+        with:
+          name: tfplan-${{ env.ENVIRONMENT }}
+
+      - name: Check if Plan Exists
+        id: check-plan
+        run: |
+          if [ -f "tfplan" ]; then
+            echo "plan_exists=true" >> $GITHUB_OUTPUT
+          else
+            echo "plan_exists=false" >> $GITHUB_OUTPUT
+            echo "⚠️ No plan file found - infrastructure may already be up to date"
+          fi
+
+      - name: Terraform Apply
+        if: steps.check-plan.outputs.plan_exists == 'true'
+        run: |
+          echo "Applying Terraform changes for $ENVIRONMENT environment..."
+          terraform apply -auto-approve tfplan
+
+      - name: No Changes to Apply
+        if: steps.check-plan.outputs.plan_exists == 'false'
+        run: |
+          echo "### ℹ️ No Changes to Apply" >> $GITHUB_STEP_SUMMARY
+          echo "Infrastructure is already up to date. No plan file was generated." >> $GITHUB_STEP_SUMMARY
+
+      - name: Output Infrastructure Info
+        if: steps.check-plan.outputs.plan_exists == 'true'
+        run: |
+          echo "### 🚀 Infrastructure Deployed Successfully" >> $GITHUB_STEP_SUMMARY
+          echo "**Environment:** $ENVIRONMENT" >> $GITHUB_STEP_SUMMARY
+          echo "**Region:** ${{ env.AWS_REGION }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          terraform output >> $GITHUB_STEP_SUMMARY
+
+      

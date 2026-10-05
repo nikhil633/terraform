@@ -30,3 +30,22 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v3
+      
+      - name: Determine Environment
+        id: env-vars
+        run: |
+          if [[ "${{ github.event_name }}" == "pull_request" ]]; then
+            BRANCH_NAME="${{ github.base_ref }}"
+          else
+            BRANCH_NAME="${{ github.ref_name }}"
+          fi
+
+          if [[ "$BRANCH_NAME" == "main" ]]; then
+            echo "environment=prod" >> $GITHUB_OUTPUT
+            echo "ENVIRONMENT=prod" >> $GITHUB_ENV
+          else
+            echo "environment=dev" >> $GITHUB_OUTPUT
+            echo "ENVIRONMENT=dev" >> $GITHUB_ENV
+          fi
+
+          echo "Deploying to: $ENVIRONMENT"

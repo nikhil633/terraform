@@ -199,9 +199,9 @@ jobs:
             echo "plan_exists=false" >> $GITHUB_OUTPUT
             echo "⚠️ No plan file found - infrastructure may already be up to date"
           fi
-          
 
       - name: Terraform Apply
+        working-directory: ./aws/s3
         if: steps.check-plan.outputs.plan_exists == 'true'
         run: |
           echo "Applying Terraform changes for $ENVIRONMENT environment..."

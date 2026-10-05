@@ -95,7 +95,7 @@ gcloud auth list
 gcloud --version
 
 
-gcloud compute ssh devops-vm --zone=us-central1-a
+gcloud compute ssh devops-vm --zone=me-central1-c
 gcloud compute instances stop devops-vm --zone=us-central1-a
 gcloud compute instances start devops-vm --zone=us-central1-a
 gcloud compute instances delete devops-vm --zone=us-central1-a
@@ -115,8 +115,9 @@ gcloud compute instances stop kind --zone=us-central1-a
 gcloud compute instances start kind --zone=us-central1-a
 gcloud compute instances delete kind --zone=us-central1-a
 
-gcloud compute instances create temp --zone=us-central1-a --machine-type=e2-standard-4 --image-family=ubuntu-2204-lts --image-project=ubuntu-os-cloud --boot-disk-size=20GB --enable-nested-virtualization
+gcloud compute instances create vault --zone=us-central1-a --machine-type=e2-standard-4 --image-family=ubuntu-2204-lts --image-project=ubuntu-os-cloud --boot-disk-size=20GB --enable-nested-virtualization
 
+gcloud compute instances set-machine-type devops-vm --machine-type=e2-standard-2 --zone=us-central1-a
 
 
 gcloud compute ssh k8s-dev-vm --zone=us-central1-a
@@ -284,3 +285,40 @@ cd ~/runner-repo-a
 
 sudo ./svc.sh install
 sudo ./svc.sh start
+
+
+
+
+- name: Debug GitHub OIDC
+  run: |
+    echo "Repository: $GITHUB_REPOSITORY"
+    echo "Ref: $GITHUB_REF"
+    echo "Event: $GITHUB_EVENT_NAME"
+
+    echo "Requesting OIDC token..."
+
+    TOKEN=$(curl -sSf \
+      -H "Authorization: bearer $ACTIONS_ID_TOKEN_REQUEST_TOKEN" \
+      "$ACTIONS_ID_TOKEN_REQUEST_URL&audience=sts.amazonaws.com" \
+      | python3 -c 'import sys,json; print(json.load(sys.stdin)["value"])')
+
+    echo "$TOKEN" | cut -d '.' -f2 | base64 -d 2>/dev/null | python3 -m json.tool
+
+
+- name: Debug GitHub OIDC token
+  uses: actions/github-script@v7
+  with:
+    script: |
+      const token = await core.getIDToken('sts.amazonaws.com');
+      const payload = JSON.parse(
+        Buffer.from(token.split('.')[1], 'base64url').toString()
+      );
+      console.log(JSON.stringify({
+        iss: payload.iss,
+        aud: payload.aud,
+        sub: payload.sub,
+        repository: payload.repository,
+        ref: payload.ref
+      }, null, 2));
+
+

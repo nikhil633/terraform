@@ -1,157 +1,157 @@
-name: Terraform CI-CD
+# name: Terraform CI-CD
 
-on:
-  push:
-    branches:
-      - main
+# on:
+#   push:
+#     branches:
+#       - main
     
 
-  workflow_dispatch:
+#   workflow_dispatch:
 
-permissions:
-  id-token: write
-  contents: read
+# permissions:
+#   id-token: write
+#   contents: read
 
-env:
-  TF_VERSION: "1.9.8"
-  AWS_REGION: "us-east-1"
+# env:
+#   TF_VERSION: "1.9.8"
+#   AWS_REGION: "us-east-1"
 
-jobs:
+# jobs:
 
-  terraform:
-    name: Terraform Deploy + Destroy
-    runs-on: [self-hosted, aws]
+#   terraform:
+#     name: Terraform Deploy + Destroy
+#     runs-on: [self-hosted, aws]
 
-    steps:
+#     steps:
 
-      # --------------------------------------------------
-      # 1. Checkout
-      # --------------------------------------------------
+#       # --------------------------------------------------
+#       # 1. Checkout
+#       # --------------------------------------------------
 
-      - name: Checkout repository
-        uses: actions/checkout@v4
-
-
-      # --------------------------------------------------
-      # 2. Setup Terraform
-      # --------------------------------------------------
-
-      - name: Setup Terraform
-        uses: hashicorp/setup-terraform@v3
-        with:
-          terraform_version: ${{ env.TF_VERSION }}
+#       - name: Checkout repository
+#         uses: actions/checkout@v4
 
 
-      # --------------------------------------------------
-      # 3. Debug GitHub OIDC token
-      # --------------------------------------------------
+#       # --------------------------------------------------
+#       # 2. Setup Terraform
+#       # --------------------------------------------------
 
-      - name: Debug GitHub OIDC token
-        uses: actions/github-script@v7
-        with:
-          script: |
-            const token = await core.getIDToken('sts.amazonaws.com');
-
-            const payload = JSON.parse(
-              Buffer.from(token.split('.')[1], 'base64url').toString()
-            );
-
-            console.log("========== OIDC CLAIMS ==========");
-            console.log("iss:", payload.iss);
-            console.log("aud:", payload.aud);
-            console.log("sub:", payload.sub);
-            console.log("repository:", payload.repository);
-            console.log("repository_id:", payload.repository_id);
-            console.log("repository_owner_id:", payload.repository_owner_id);
-            console.log("ref:", payload.ref);
-            console.log("workflow:", payload.workflow);
-            console.log("environment:", payload.environment);
-            console.log("=================================");
+#       - name: Setup Terraform
+#         uses: hashicorp/setup-terraform@v3
+#         with:
+#           terraform_version: ${{ env.TF_VERSION }}
 
 
-      # --------------------------------------------------
-      # 4. Configure AWS using GitHub OIDC
-      # --------------------------------------------------
+#       # --------------------------------------------------
+#       # 3. Debug GitHub OIDC token
+#       # --------------------------------------------------
 
-      - name: Configure AWS credentials
-        uses: aws-actions/configure-aws-credentials@v4
-        with:
-          aws-region: ${{ env.AWS_REGION }}
-          role-to-assume: arn:aws:iam::571573792013:role/github-actions-terraform-role
+#       - name: Debug GitHub OIDC token
+#         uses: actions/github-script@v7
+#         with:
+#           script: |
+#             const token = await core.getIDToken('sts.amazonaws.com');
 
+#             const payload = JSON.parse(
+#               Buffer.from(token.split('.')[1], 'base64url').toString()
+#             );
 
-      # --------------------------------------------------
-      # 5. Verify AWS
-      # --------------------------------------------------
-
-      - name: Verify AWS identity
-        run: |
-          aws sts get-caller-identity
-
-
-      # --------------------------------------------------
-      # 6. Terraform Init
-      # --------------------------------------------------
-
-      - name: Terraform Init
-        working-directory: ./aws/ec2
-        run: |
-          terraform init -input=false
+#             console.log("========== OIDC CLAIMS ==========");
+#             console.log("iss:", payload.iss);
+#             console.log("aud:", payload.aud);
+#             console.log("sub:", payload.sub);
+#             console.log("repository:", payload.repository);
+#             console.log("repository_id:", payload.repository_id);
+#             console.log("repository_owner_id:", payload.repository_owner_id);
+#             console.log("ref:", payload.ref);
+#             console.log("workflow:", payload.workflow);
+#             console.log("environment:", payload.environment);
+#             console.log("=================================");
 
 
-      # --------------------------------------------------
-      # 7. Terraform Validate
-      # --------------------------------------------------
+#       # --------------------------------------------------
+#       # 4. Configure AWS using GitHub OIDC
+#       # --------------------------------------------------
 
-      - name: Terraform Validate
-        working-directory: ./aws/ec2
-        run: |
-          terraform validate
-
-
-      # --------------------------------------------------
-      # 8. Terraform Plan
-      # --------------------------------------------------
-
-      - name: Terraform Plan
-        working-directory: ./aws/ec2
-        run: |
-          terraform plan \
-            -input=false \
-            -out=tfplan
+#       - name: Configure AWS credentials
+#         uses: aws-actions/configure-aws-credentials@v4
+#         with:
+#           aws-region: ${{ env.AWS_REGION }}
+#           role-to-assume: arn:aws:iam::571573792013:role/github-actions-terraform-role
 
 
-      # --------------------------------------------------
-      # 9. Terraform Apply
-      # --------------------------------------------------
+#       # --------------------------------------------------
+#       # 5. Verify AWS
+#       # --------------------------------------------------
 
-      - name: Terraform Apply
-        working-directory: ./aws/ec2
-        run: |
-          terraform apply \
-            -input=false \
-            -auto-approve \
-            tfplan
+#       - name: Verify AWS identity
+#         run: |
+#           aws sts get-caller-identity
 
 
-      # --------------------------------------------------
-      # 10. Wait 30 seconds
-      # --------------------------------------------------
+#       # --------------------------------------------------
+#       # 6. Terraform Init
+#       # --------------------------------------------------
 
-      - name: Wait 30 seconds
-        run: |
-          echo "Waiting 30 seconds..."
-          sleep 30
+#       - name: Terraform Init
+#         working-directory: ./aws/ec2
+#         run: |
+#           terraform init -input=false
 
 
-      # --------------------------------------------------
-      # 11. Terraform Destroy
-      # --------------------------------------------------
+#       # --------------------------------------------------
+#       # 7. Terraform Validate
+#       # --------------------------------------------------
 
-      - name: Terraform Destroy
-        working-directory: ./aws/ec2
-        if: always()
-        run: |
-          terraform destroy \
-            -input=false \
-            -auto-approve
+#       - name: Terraform Validate
+#         working-directory: ./aws/ec2
+#         run: |
+#           terraform validate
+
+
+#       # --------------------------------------------------
+#       # 8. Terraform Plan
+#       # --------------------------------------------------
+
+#       - name: Terraform Plan
+#         working-directory: ./aws/ec2
+#         run: |
+#           terraform plan \
+#             -input=false \
+#             -out=tfplan
+
+
+#       # --------------------------------------------------
+#       # 9. Terraform Apply
+#       # --------------------------------------------------
+
+#       - name: Terraform Apply
+#         working-directory: ./aws/ec2
+#         run: |
+#           terraform apply \
+#             -input=false \
+#             -auto-approve \
+#             tfplan
+
+
+#       # --------------------------------------------------
+#       # 10. Wait 30 seconds
+#       # --------------------------------------------------
+
+#       - name: Wait 30 seconds
+#         run: |
+#           echo "Waiting 30 seconds..."
+#           sleep 30
+
+
+#       # --------------------------------------------------
+#       # 11. Terraform Destroy
+#       # --------------------------------------------------
+
+#       - name: Terraform Destroy
+#         working-directory: ./aws/ec2
+#         if: always()
+#         run: |
+#           terraform destroy \
+#             -input=false \
+#             -auto-approve

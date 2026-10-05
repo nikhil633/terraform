@@ -88,3 +88,48 @@ jobs:
         continue-on-error: true
 
       
+      - name: Comment PR with Plan
+        if: github.event_name == 'pull_request'
+        uses: actions/github-script@v6
+        with:
+          github-token: ${{ secrets.TOKEN }}
+          script: |
+            const fs = require('fs');
+            const planOutput = fs.readFileSync('plan_output.txt', 'utf8');
+
+            const output = `#### Terraform Plan for \`${{ env.ENVIRONMENT }}\` Environment 🌍
+
+            <details>
+            <summary>Show Plan</summary>
+
+            \`\`\`terraform
+            ${planOutput.slice(0, 60000)}
+            \`\`\`
+
+            </details>
+
+            - **Format:** \`${{ steps.fmt.outcome }}\`
+            - **Validate:** \`${{ steps.validate.outcome }}\`
+            - **Plan:** \`${{ steps.plan.outcome }}\`
+
+            *Pushed by: @${{ github.actor }}*`;
+
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: output
+            });
+
+      - name: Terraform Plan Status
+        if: steps.plan.outcome == 'failure'
+        run: exit 1
+
+      - name: Upload Plan
+        if: steps.plan.outcome == 'success'
+        uses: actions/upload-artifact@v4
+        with:
+          name: tfplan-${{ env.ENVIRONMENT }}
+          path: tfplan
+          retention-days: 5
+          if-no-files-found: warn

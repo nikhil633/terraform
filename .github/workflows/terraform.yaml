@@ -87,9 +87,15 @@ jobs:
           terraform plan -no-color -out=tfplan | tee plan_output.txt
         continue-on-error: true
 
+      - name: Check Plan Files
+        run: |
+          pwd
+          ls -la
+          find . -name "plan_output.txt" -o -name "tfplan"
+
       
       - name: Comment PR with Plan
-        if: github.event_name == 'push'
+        if: github.event_name == 'pull_request'
         uses: actions/github-script@v6
         with:
           github-token: ${{ secrets.TOKEN }}

@@ -95,6 +95,10 @@ gcloud auth list
 gcloud --version
 
 
+git add .
+git commit -m "added"
+git push origin main
+
 gcloud compute ssh devops-vm --zone=me-central1-c
 gcloud compute instances stop devops-vm --zone=us-central1-a
 gcloud compute instances start devops-vm --zone=us-central1-a

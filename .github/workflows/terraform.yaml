@@ -204,7 +204,7 @@ jobs:
         if: steps.check-plan.outputs.plan_exists == 'true'
         run: |
           echo "Applying Terraform changes for $ENVIRONMENT environment..."
-          terraform apply -auto-approve tfplan
+          terraform apply -auto-approve aws/s3/tfplan
 
       - name: No Changes to Apply
         if: steps.check-plan.outputs.plan_exists == 'false'

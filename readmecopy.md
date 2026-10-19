@@ -285,7 +285,7 @@ cd ~/runner-repo-a
 
 ./config.sh \
   --url https://github.com/nikhil633/devsecops-demo \
-  --token AO5DTZ3AGJDTGXS5VUCG75LKXE544
+  --token 
 
 sudo ./svc.sh install
 sudo ./svc.sh start

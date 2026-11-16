@@ -1,0 +1,7 @@
+subscription_id             = "00000000-0000-0000-0000-000000000000"
+vm_resource_id              = "/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/my-vm-rg/providers/Microsoft.Compute/virtualMachines/my-linux-vm"
+vm_location                 = "Central India"
+backup_resource_group_name  = "rg-vm-backup"
+recovery_vault_name         = "myapp-recovery-vault-001"
+backup_policy_name          = "daily-vm-backup-policy"
+backup_time_utc             = "20:00"

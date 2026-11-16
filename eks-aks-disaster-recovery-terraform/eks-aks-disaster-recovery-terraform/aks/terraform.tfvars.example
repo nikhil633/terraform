@@ -1,0 +1,17 @@
+subscription_id              = "00000000-0000-0000-0000-000000000000"
+aks_name                     = "my-existing-aks"
+aks_resource_group_name      = "my-aks-resource-group"
+
+backup_resource_group_name   = "rg-aks-backup"
+snapshot_resource_group_name = "rg-aks-backup-snapshots"
+
+backup_vault_name            = "aks-backup-vault-unique-name"
+storage_account_name         = "aksbackupunique123"
+storage_container_name       = "aks-backup"
+
+backup_policy_name           = "aks-daily-backup-policy"
+backup_start_datetime_utc    = "2026-11-14T20:00:00Z"
+backup_retention_days        = 30
+
+included_namespaces          = []
+excluded_namespaces          = ["kube-system", "kube-public", "kube-node-lease"]

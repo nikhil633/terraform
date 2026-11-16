@@ -23,6 +23,7 @@ resource "aws_cloudwatch_log_group" "eks" {
   tags = var.tags
 }
 
+
 resource "aws_security_group" "cluster" {
   name_prefix = "${var.cluster_name}-cluster-sg-"
   description = "Security group for EKS cluster control plane"
@@ -44,7 +45,7 @@ resource "aws_security_group" "cluster" {
   )
 
   lifecycle {
-    create_before_destroy = true
+    create_before_destroy = false
   }
 }
 
@@ -74,7 +75,6 @@ resource "aws_security_group" "node" {
     create_before_destroy = true
   }
 }
-
 
 
 resource "aws_security_group_rule" "node_to_cluster" {
@@ -129,6 +129,11 @@ resource "aws_eks_cluster" "main" {
     }
     resources = ["secrets"]
   }
+  access_config {
+  authentication_mode = "API_AND_CONFIG_MAP"
+
+  bootstrap_cluster_creator_admin_permissions = true
+}
 
   enabled_cluster_log_types = ["api", "audit", "authenticator", "controllerManager", "scheduler"]
 
@@ -139,6 +144,7 @@ resource "aws_eks_cluster" "main" {
   tags = var.tags
 }
 
+# OIDC Provider for IRSA (IAM Roles for Service Accounts)
 data "tls_certificate" "cluster" {
   count = var.enable_irsa ? 1 : 0
   url   = aws_eks_cluster.main.identity[0].oidc[0].issuer
@@ -158,6 +164,7 @@ resource "aws_iam_openid_connect_provider" "cluster" {
   )
 }
 
+# EKS Addons
 resource "aws_eks_addon" "coredns" {
   cluster_name                = aws_eks_cluster.main.name
   addon_name                  = "coredns"
@@ -191,6 +198,9 @@ resource "aws_eks_addon" "vpc_cni" {
 }
 
 
+
+
+# Launch Template for Node Groups
 resource "aws_launch_template" "node" {
   for_each = var.node_groups
 
@@ -238,7 +248,7 @@ resource "aws_launch_template" "node" {
   }
 
   lifecycle {
-    create_before_destroy = true
+    create_before_destroy = false
   }
 
   tags = var.tags
@@ -293,4 +303,11 @@ resource "aws_eks_node_group" "main" {
     ignore_changes = [scaling_config[0].desired_size]
   }
 }
+
+
+
+
+
+
+
 

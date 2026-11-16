@@ -326,3 +326,569 @@ sudo ./svc.sh start
       }, null, 2));
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#############################################################################################################################
+
+git branch -m main prod
+git push origin prod
+git push origin --delete main
+git log --oneline
+git branch 
+git switch prod
+git tag -a v1.0.0 -m "Initial tag"
+git push origin v1.0.0
+git switch -c ppd
+git push -u origin ppd
+git switch prod
+git switch -c dev
+git push -u origin dev
+
+git switch feature/dev
+git fetch origin
+git merge origin/dev
+
+git diff 
+
+sudo apt update
+sudo apt install cloud-guest-utils
+
+sudo growpart /dev/sda 1
+
+sudo resize2fs /dev/sda1
+
+df -h /
+
+
+Jenkins stages ->
+
+1. Git Checkout
+2. compile -> mvn compile
+3. test -> mvn test -DskipTests=true
+4. 
+
+
+
+
+
+
+
+
+
+-----------------------------------------------------------------------
+Ansible
+
+ssh-copy-id -f "-0 IdentityFile ~/Downloads/ .pem" ubuntu@0.0.0.0
+ssh -o ' IdentityFile ~/.pem' 'ubuntu@0.0.0.0'
+ssh ubuntu@0.0.0.0
+
+sudo vim /etc/ssh/sshd_config.d/60-cloudimg-settings.conf
+
+sudo passwd ubuntu
+
+ssh-copy-id ubuntu@0.0.0.0
+
+/etc/ansible/hosts
+
+ansible -i inventory.ini -m ping all
+
+ansible -i inventory.ini -m shell -a "apt install openjdk" "all"
+
+installing oracle , packaging database , what type of packages do we install on kubernetes?
+
+ansible -i inventory.ini -m shell -a "sudo ls /etc/" all
+
+ansible builtin commands 
+ansible adhoc commands
+
+
+ansible galaxy login and search roles
+
+
+ansible-galaxy -h
+
+ls ~/.ansible/roles/
+
+ansible-galaxy role init test
+
+ansible all -i inventory.ini -m ansible.builtin.ping
+ansible-playbook -i inventory.ini apache.yml --syntax-check
+ansible-playbook -i inventory.ini apache.yml
+
+---------------------------------------------------------------------------------------------------------------------
+
+INTERVIEW
+
+_____________________________________________________________________________________________________
+
+DOCKERFILE .NET 
+
+# Copyright The OpenTelemetry Authors
+# SPDX-License-Identifier: Apache-2.0
+
+FROM --platform=${BUILDPLATFORM} mcr.microsoft.com/dotnet/sdk:8.0 AS builder
+ARG TARGETARCH
+ARG BUILD_CONFIGURATION=Release
+WORKDIR /src
+COPY ["/src/accounting/", "Accounting/"]
+COPY ["/pb/demo.proto", "Accounting/proto/"]
+RUN dotnet restore "./Accounting/Accounting.csproj" -r linux-$TARGETARCH
+WORKDIR "/src/Accounting"
+
+RUN dotnet build "./Accounting.csproj" -r linux-$TARGETARCH -c $BUILD_CONFIGURATION -o /app/build
+
+# -----------------------------------------------------------------------------
+
+FROM builder AS publish
+ARG TARGETARCH
+ARG BUILD_CONFIGURATION=Release
+RUN dotnet publish "./Accounting.csproj" -r linux-$TARGETARCH -c $BUILD_CONFIGURATION -o /app/publish /p:UseAppHost=false
+
+# -----------------------------------------------------------------------------
+
+FROM mcr.microsoft.com/dotnet/aspnet:8.0
+USER app
+WORKDIR /app
+COPY --from=publish /app/publish .
+
+USER root
+RUN mkdir -p "/var/log/opentelemetry/dotnet"
+RUN chown app "/var/log/opentelemetry/dotnet"
+RUN chown app "/app/instrument.sh"
+USER app
+
+ENTRYPOINT ["./instrument.sh", "dotnet", "Accounting.dll"]
+
+
+--------------------
+
+
+# syntax=docker/dockerfile:1
+
+# --------------------------------------------------
+# 1. Restore dependencies
+# --------------------------------------------------
+FROM mcr.microsoft.com/dotnet/sdk:10.0 AS restore
+WORKDIR /src
+
+COPY src/Accounting/Accounting.csproj src/Accounting/
+COPY pb/demo.proto src/Accounting/proto/
+
+RUN --mount=type=cache,id=nuget,target=/root/.nuget/packages \
+    dotnet restore src/Accounting/Accounting.csproj
+
+# --------------------------------------------------
+# 2. Build and test
+# --------------------------------------------------
+FROM restore AS test
+COPY . .
+
+RUN dotnet test tests/Accounting.Tests/Accounting.Tests.csproj \
+    --configuration Release \
+    --no-restore
+
+# --------------------------------------------------
+# 3. Publish optimized application
+# --------------------------------------------------
+FROM restore AS publish
+COPY src/Accounting/ src/Accounting/
+COPY pb/ pb/
+
+RUN --mount=type=cache,id=nuget,target=/root/.nuget/packages \
+    dotnet publish src/Accounting/Accounting.csproj \
+    --configuration Release \
+    --no-restore \
+    --output /app/publish \
+    /p:UseAppHost=false \
+    /p:DebugType=None \
+    /p:DebugSymbols=false
+
+# --------------------------------------------------
+# 4. Production runtime
+# --------------------------------------------------
+FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS production
+WORKDIR /app
+
+ENV ASPNETCORE_HTTP_PORTS=8080 \
+    DOTNET_EnableDiagnostics=0
+
+COPY --from=publish --chown=$APP_UID:$APP_UID \
+    /app/publish/ ./
+
+USER $APP_UID
+
+EXPOSE 8080
+
+ENTRYPOINT ["dotnet", "Accounting.dll"]
+
+
+--------------------------------
+
+
+# syntax=docker/dockerfile:1
+
+FROM mcr.microsoft.com/dotnet/sdk:10.0 AS development
+
+USER root
+WORKDIR /workspace
+
+# Development-only diagnostic utilities.
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    bash \
+    curl \
+    wget \
+    git \
+    procps \
+    iproute2 \
+    iputils-ping \
+    dnsutils \
+    netcat-openbsd \
+    tcpdump \
+    strace \
+    gdb \
+    lsof \
+    jq \
+    unzip \
+    ca-certificates \
+    && rm -rf /var/lib/apt/lists/*
+
+# Restore dependencies separately for better caching.
+COPY src/Accounting/Accounting.csproj src/Accounting/
+COPY pb/demo.proto src/Accounting/proto/
+
+RUN dotnet restore src/Accounting/Accounting.csproj
+
+# Create a non-root development account.
+RUN useradd --create-home --shell /bin/bash developer \
+    && chown -R developer:developer /workspace
+
+USER developer
+WORKDIR /workspace/src/Accounting
+
+EXPOSE 8080
+
+ENV ASPNETCORE_HTTP_PORTS=8080 \
+    DOTNET_USE_POLLING_FILE_WATCHER=1
+
+# Source code will be mounted into this directory.
+ENTRYPOINT ["dotnet", "watch", "run", \
+    "--project", "Accounting.csproj", \
+    "--urls", "http://0.0.0.0:8080"]
+
+
+
+-------------------------------
+
+
+JAVA GRADLE 
+
+FROM eclipse-temurin:21-jdk AS builder
+
+WORKDIR /usr/src/app/
+
+COPY gradlew* settings.gradle* build.gradle .
+COPY ./gradle ./gradle
+
+RUN chmod +x ./gradlew
+RUN ./gradlew
+RUN ./gradlew downloadRepos
+
+COPY . .
+COPY ./pb ./proto
+RUN chmod +x ./gradlew
+RUN ./gradlew installDist -PprotoSourceDir=./proto
+
+#####################################################
+
+FROM eclipse-temurin:21-jre
+
+WORKDIR /usr/src/app/
+
+COPY --from=builder /usr/src/app/ ./
+
+ENV AD_PORT 9099
+
+ENTRYPOINT ["./build/install/opentelemetry-demo-ad/bin/Ad"]
+
+
+
+----------------------
+
+
+# syntax=docker/dockerfile:1
+
+# ==========================================================
+# 1. BUILDER: Compile and package the Java application
+# ==========================================================
+FROM eclipse-temurin:21-jdk AS builder
+
+WORKDIR /usr/src/app
+
+# Copy build configuration first for better cache reuse
+COPY gradlew settings.gradle* build.gradle* ./
+COPY gradle/ ./gradle/
+
+RUN chmod +x ./gradlew
+
+# Retain the project's existing Gradle setup tasks
+RUN ./gradlew
+RUN ./gradlew downloadRepos
+
+# Copy application source and protocol definitions
+COPY . .
+COPY ./pb ./proto
+
+# Build the installable application distribution
+RUN ./gradlew installDist -PprotoSourceDir=./proto
+
+
+# ==========================================================
+# 2. DEV: JDK + application + debugging utilities
+# ==========================================================
+FROM eclipse-temurin:21-jdk AS dev
+
+WORKDIR /opt/app
+
+# Install common Linux debugging and troubleshooting tools
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends \
+        curl \
+        wget \
+        procps \
+        iproute2 \
+        iputils-ping \
+        dnsutils \
+        netcat-openbsd \
+        lsof \
+        strace \
+        less \
+        vim-tiny \
+    && rm -rf /var/lib/apt/lists/*
+
+# Copy only the packaged application, not its source or Gradle cache
+COPY --from=builder \
+    /usr/src/app/build/install/opentelemetry-demo-ad/ \
+    /opt/app/
+
+ENV AD_PORT=9099
+
+EXPOSE 9099
+
+ENTRYPOINT ["/opt/app/bin/Ad"]
+
+
+# ==========================================================
+# 3. RUNTIME: Clean production image
+# ==========================================================
+FROM eclipse-temurin:21-jre AS runtime
+
+WORKDIR /opt/app
+
+# Copy only the application distribution
+COPY --from=builder \
+    /usr/src/app/build/install/opentelemetry-demo-ad/ \
+    /opt/app/
+
+# Run as a non-root user
+USER 10001:10001
+
+ENV AD_PORT=9099
+
+EXPOSE 9099
+
+ENTRYPOINT ["/opt/app/bin/Ad"]
+
+
+--------------------------------------------------------------------------------
+
+
+AWS        	                    Azure equivalent
+AWS IAM	                        Microsoft Entra ID + Azure RBAC
+IAM User	                      Entra ID User
+IAM Role	                      Managed Identity or Service Principal, depending on scenario
+IAM Policy	                    Azure RBAC Role
+EC2 Instance Role	              VM Managed Identity
+IRSA (EKS)	                    Microsoft Entra Workload ID (AKS)
+GitHub Actions OIDC + IAM Role	GitHub Actions OIDC + Federated Identity Credential
+
+
+
+-------------------------------------------------------------------------------------------------------
+NODEJS
+
+FROM node:26-bookworm-slim AS dependencies
+
+RUN apt-get update &&\
+    apt-get install -y --no-install-recommends curl tini && \
+    rm -rf var/lib/apt/lists/*
+
+WORKDIR /user/local/app
+
+RUN npm install -g nodemon
+
+COPY package*.json ./
+
+RUN npm ci &&\
+    npm cache clean --force && \
+    mv /user/local/app/node_modules /node_modules
+
+COPY . .
+
+ENV PORT=80
+EXPOSE 80
+
+ENTRYPOINT["usr/bin/tini","--"]
+CMD["node","server.js"]
+
+----------------------------------------------------------------------
+
+FROM node:26-bookworm-slim AS dependencies
+
+WORKDIR /app
+
+COPY package*.json ./
+
+RUN --mount=type=cache,target=/root/.npm \
+    npm ci --omit=dev
+
+FROM node:26-bookworm-slim AS production
+
+ENV NODE_ENV=production \
+    PORT=8000
+
+WORKDIR /app
+
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends \
+        tini \
+        curl && \
+    rm -rf /var/lib/apt/lists/*
+
+COPY --from=dependencies --chown=node:node \
+    /app/node_modules ./node_modules
+
+COPY --chown=node:node package.json ./
+COPY --chown=node:node server.js ./
+COPY --chown=node:node src ./src
+
+USER node
+
+EXPOSE 8000
+
+ENTRYPOINT ["/usr/bin/tini", "--"]
+
+CMD ["node", "server.js"]
+
+-------------------------------------------------------------------------------------
+
+--------------------------------------------PYTHON SCRIPTS---------------------------
+
+
+github pull requests basic script
+
+
+
+----------------------------------------------------
+
+
+
+AWS -> Elastic Beanstalk -> aws_elastic_beanstalk_application + aws_elastic_beanstalk_application_version +  aws_elastic_beanstalk_environment
+Azure -> Azure App service -> azurerm_service_plan + azurerm_linux_web_app + azurerm_linux_web_app_slot + azurerm_web_app_active_slot
+
+azure Function -> azurerm_storage_account + azurerm_log_analytics_workspace + azurerm_application_insights  + azurerm_service_plan + azurerm_linux_function_app
+
+AWS lambda -> aws_caller_identity + aws_s3_bucket + aws_s3_bucket_versioning + aws_s3_bucket_server_side_encryption_configuration + aws_s3_bucket_public_access_block + archive_file + aws_s3_object + aws_cloudwatch_log_group + aws_lambda_function + aws_lambda_function_url 
+
+
+AWS -> ECS Fargate -> aws_ecs_cluster + aws_ecs_task_defination + aws_ecs_service + aws_appautoscaling_target + aws_appautoscaling_policy 
+Azure -> Azure container apps -> azurerm_container_app_environment + azurerm_container_app
+
+
+
+Azure App service container apps -> azurerm_log_analytics_workspace +  azurerm_container_app_environment + azurerm_container_app
+AWS -> AWS App runner -> aws_apprunner_service
+
+-----------------------------------------------------------------------------------------------
+
+Azure -> azuread_domains + azuread_user + azuread_group + azuread_group_member 
+AWS -> aws_ssoadmin_instances + aws_identitystore_user + aws_identitystore_group + aws_identitystore_group_membership+ aws_ssoadmin_account_assignment + aws_ssoadmin_permission_set + aws_ssoadmin_managed_policy_attachment 
+
+
+
+
+
+
+prometheus, grafana, jaeger, open telemetry, PagerDuty, ELS Stack, FLuentBit ,Node exporter, Kube state metrics , Alertmanager , slack, Elasticsearch, Kibana
+
+
+
+AWS -> AWS CloudWatch , AWS X-Ray ,
+
+
+
+
+
+Connect an Azure VNet to an AWS VPC.
+Allow Azure VMs to communicate with AWS EC2 instances.
+Connect Azure AKS to AWS EKS.
+Allow applications in Azure to access databases in AWS.
+Connect Azure and AWS through VPN or private network connectivity.
+Synchronize identity and authentication between the two clouds.
+Transfer files and data between Azure Storage and AWS S3.
+
+
+
+resource "aws_vpc_endpoint" "secrets_manager" {
+
+  vpc_id = aws_vpc.main.id
+
+  service_name = "com.amazonaws.ap-south-1.secretsmanager"
+
+  vpc_endpoint_type = "Interface"
+
+  subnet_ids = aws_subnet.private[*].id
+
+  security_group_ids = [
+    aws_security_group.vpc_endpoint.id
+  ]
+
+  private_dns_enabled = true
+}
+
+
+
+resource "aws_vpc_security_group_ingress_rule" "secrets_https" {
+
+  security_group_id = aws_security_group.vpc_endpoint.id
+
+  referenced_security_group_id = aws_security_group.eks_nodes.id
+
+  from_port = 443
+  to_port   = 443
+
+  ip_protocol = "tcp"
+}
+
+
+
+
+aws eks get-token --cluster-name YOUR_CLUSTER_NAME --region us-east-1
+
+aws eks update-kubeconfig --region us-east-1 --name YOUR_CLUSTER_NAME
+
+kubectl config get-contexts
+
+kubectl config current-conetxts
+

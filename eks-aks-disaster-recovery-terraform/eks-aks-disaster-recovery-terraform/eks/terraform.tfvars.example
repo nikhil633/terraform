@@ -1,0 +1,4 @@
+primary_region     = "ap-south-1"
+destination_region = "ap-southeast-1"
+eks_cluster_arn    = "arn:aws:eks:ap-south-1:123456789012:cluster/my-eks-cluster"
+name_prefix        = "my-eks"
